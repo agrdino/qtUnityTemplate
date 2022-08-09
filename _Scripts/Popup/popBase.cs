@@ -1,5 +1,6 @@
 using System;
 using _Scripts.Helper;
+using _Scripts.qtLib;
 using _Scripts.System;
 using DG.Tweening;
 using TMPro;
@@ -11,7 +12,7 @@ namespace _Prefab.Popup
     public abstract class popBase : MonoBehaviour
     {
         [SerializeField] private Image imgBackground;
-        [SerializeField] private Button btnClose;
+        [SerializeField] private qtButton btnClose;
         [SerializeField] protected TextMeshProUGUI txtContent;
 
         public enum AnimType
@@ -45,14 +46,14 @@ namespace _Prefab.Popup
         public void Hide()
         {
             MoveOut();
-            UIManager.Instance.Fading(false);
+            _Scripts.System.UIManager.Instance.Fading(false);
         }
 
         public popBase Show()
         {
             MoveIn();
-            UIManager.Instance.Fading(true);
-            UIManager.Instance.stackPopup.Push(this);
+            _Scripts.System.UIManager.Instance.Fading(true);
+            _Scripts.System.UIManager.Instance.stackPopup.Push(this);
             return this;
         }
 
@@ -141,6 +142,12 @@ namespace _Prefab.Popup
                     break;
                 }
             }
+        }
+
+        private void Reset()
+        {
+            _moveIn = AnimType.Left;
+            _moveOut = AnimType.Right;
         }
     }
 }

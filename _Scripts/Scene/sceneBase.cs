@@ -1,6 +1,8 @@
+using UnityEngine;
+
 namespace _Scripts.Scene
 {
-    public abstract class sceneBase : qtSingleton<sceneBase>
+    public abstract class sceneBase : MonoBehaviour
     {
         public virtual void Initialize()
         {
@@ -8,6 +10,8 @@ namespace _Scripts.Scene
         }
         protected abstract void InitEvent();
         public abstract void InitObject();
+
+        protected abstract void RemoveEvent();
 
         public virtual void Show()
         {
@@ -17,6 +21,7 @@ namespace _Scripts.Scene
         public virtual void Hide()
         {
             gameObject.SetActive(false);
+            RemoveEvent();
         }
     }
 }

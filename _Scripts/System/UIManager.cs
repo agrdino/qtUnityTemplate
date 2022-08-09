@@ -1,7 +1,5 @@
-using System;
 using System.Collections.Generic;
 using _Prefab.Popup;
-using _Scripts.Helper;
 using _Scripts.Scene;
 using DG.Tweening;
 using TMPro;
@@ -27,6 +25,7 @@ namespace _Scripts.System
             private set;
         }
 
+        private qtObject.Scene _currentSceneData;
         public hudBase currentHUD
         {
             get;
@@ -38,6 +37,7 @@ namespace _Scripts.System
         private GameObject _canvasOnTop;
         private GameObject _canvas;
         private GameObject _ignoreCast;
+        private RectTransform _loadingIndicator;
         private Image _fading;
         private TextMeshProUGUI _txtDetail;
 
@@ -54,13 +54,13 @@ namespace _Scripts.System
         {
             InitObject();
             Initialize();
-            ShowScene(startScene);
+            ShowScene<sceneBase>(startScene);
         }
 
         private void InitObject()
         {
             _canvasOnTop = FindObjectInRootIncludingInactive("CanvasOnTop");
-            _canvas = FindObjectInRootIncludingInactive("Canvas");
+            _canvas = FindObjectInRootIncludingInactive("MainCanvas");
         }
         
         private void Initialize()
@@ -79,7 +79,14 @@ namespace _Scripts.System
                 if (stackPopup.Count > 0)
                 {
                     stackPopup.Pop().Hide();
-                    currentPopup = stackPopup.Peek();
+                    if (stackPopup.Count > 0)
+                    {
+                        currentPopup = stackPopup.Peek();
+                    }
+                    else
+                    {
+                        currentPopup = null;
+                    }
                 }
             }
         }
@@ -87,25 +94,28 @@ namespace _Scripts.System
         #endregion
 
         #region ----- PUBLIC FUNCTION -----
-        
-        public void ShowDetail(string content, Vector3 position, bool isShow = true)
+
+        public void ShowLoadingIndicator()
         {
-            if (_txtDetail == null)
+            if (_loadingIndicator == null)
             {
-                _txtDetail = Instantiate(Resources.Load<GameObject>("pnlDetail"), _canvasOnTop.transform, true)
-                    .GetComponentInChildren<TextMeshProUGUI>();
+                _loadingIndicator = Instantiate(Resources.Load<GameObject>("imgLoading"), _canvasOnTop.transform).GetComponent<RectTransform>();
             }
 
-            if (!isShow)
+            _loadingIndicator.SetSiblingIndex(_canvasOnTop.transform.childCount - 1);
+            _loadingIndicator.DORotate(-360 * Vector3.forward, 2, RotateMode.FastBeyond360).SetEase(Ease.Linear).SetLoops(-1);
+            _loadingIndicator.gameObject.SetActive(true);
+        }
+
+        public void HideLoadingIndicator()
+        {
+            if (_loadingIndicator == null)
             {
-                _txtDetail.transform.parent.gameObject.SetActive(false);
+                return;
             }
-            else
-            {
-                _txtDetail.text = content;
-                _txtDetail.transform.parent.position = position;
-                _txtDetail.transform.parent.gameObject.SetActive(true);
-            }
+
+            _loadingIndicator.DOKill();
+            _loadingIndicator.gameObject.SetActive(false);
         }
         
         public bool ignoreCast
@@ -130,7 +140,14 @@ namespace _Scripts.System
             {
                 _fading = Instantiate(Resources.Load<GameObject>("imgFading"), _canvasOnTop.transform).GetComponent<Image>();
                 _fading.gameObject.SetActive(false);
-                _fading.transform.SetSiblingIndex(1);
+                if (_currentSceneData.showHUD)
+                {
+                    _fading.transform.SetSiblingIndex(1);
+                }
+                else
+                {
+                    _fading.transform.SetSiblingIndex(0);
+                }
                 _fading.color = Color.clear;
             }
             if (fade)
@@ -148,13 +165,14 @@ namespace _Scripts.System
             }
         }
 
-        public popBase ShowPopup(qtScene.EPopup popupId)
+        public T ShowPopup<T>(qtScene.EPopup popupId) where T : popBase
         {
             _popups ??= new Dictionary<qtScene.EPopup, popBase>();
             popBase tempPopup = null;
             if (!_popups.ContainsKey(popupId))
             {
                 tempPopup = Instantiate(qtScene.sceneData.popups.Find(x => x.id == popupId).prefab, _canvasOnTop.transform).GetComponent<popBase>();
+                tempPopup.name = qtScene.sceneData.popups.Find(x => x.id == popupId).prefab.name;
                 _popups.Add(popupId, tempPopup);
             }
             else
@@ -163,21 +181,23 @@ namespace _Scripts.System
             }
             tempPopup.transform.SetSiblingIndex(_canvasOnTop.transform.childCount - 1);
             currentPopup = tempPopup;
-            return tempPopup;
+            return (T)tempPopup.Show();
         }
 
-        public sceneBase ShowScene(qtScene.EScene scene)
+        public T ShowScene<T>(qtScene.EScene scene) where T : sceneBase
         {
             _scenes ??= new Dictionary<qtScene.EScene, sceneBase>();
             
             sceneBase tempScene = null;
+            var showScene = qtScene.sceneData.sences.Find(x => x.id == scene);
+            _currentSceneData = showScene;
             if (!_scenes.ContainsKey(scene))
             {
-                var sceneName = qtScene.sceneData.sences.Find(x => x.id == scene).scene.name;
-                var temp = FindObjectInChildren(_canvas, sceneName);
+                var temp = FindObjectInChildren(_canvas, showScene.scene.name);
                 if (temp == null)
                 {
                     tempScene = Instantiate(qtScene.sceneData.sences.Find(x => x.id == scene).scene, _canvas.transform).GetComponent<sceneBase>();
+                    tempScene.gameObject.name = qtScene.sceneData.sences.Find(x => x.id == scene).scene.name;
                     tempScene.InitObject();
                     _scenes.Add(scene, tempScene);
                 }
@@ -192,21 +212,57 @@ namespace _Scripts.System
             {
                 tempScene = _scenes[scene];
             }
+            tempScene.gameObject.SetActive(false);
+
+            tempScene.Initialize();
 
             if (currentScene != null)
             {
                 currentScene.Hide();
+                FadingScene(tempScene);
             }
-            tempScene.Initialize();
-            tempScene.Show();
-            currentHUD = ShowHUD(qtScene.sceneData.sences.Find(x => x.id == scene));
-            currentScene = tempScene;
-            return tempScene;
+            else
+            {
+                currentScene = tempScene;
+                tempScene.Show();
+            }
+
+            currentHUD = ShowHUD(showScene);
+
+            return (T)tempScene;
         }
 
+        public T GetScene<T>(qtScene.EScene scene) where T : sceneBase
+        {
+            _scenes ??= new Dictionary<qtScene.EScene, sceneBase>();
+            if (_scenes.ContainsKey(scene))
+            {
+                return (T)_scenes[scene];
+            }
+            var showScene = qtScene.sceneData.sences.Find(x => x.id == scene);
+            var temp = FindObjectInChildren(_canvas, showScene.scene.name);
+            sceneBase tempScene = null; 
+            if (temp == null)
+            {
+                tempScene = Instantiate(qtScene.sceneData.sences.Find(x => x.id == scene).scene, _canvas.transform).GetComponent<sceneBase>();
+                tempScene.gameObject.name = qtScene.sceneData.sences.Find(x => x.id == scene).scene.name;
+                tempScene.InitObject();
+                _scenes.Add(scene, tempScene);
+            }
+            else
+            {
+                tempScene = temp.GetComponent<sceneBase>();
+                tempScene.InitObject();
+                _scenes.Add(scene, tempScene);
+            }
+            tempScene.gameObject.SetActive(false);
+
+            return (T)tempScene;
+        }
+        
         #endregion
 
-        #region ----- PRIVATE FUNCTION
+        #region ----- PRIVATE FUNCTION -----
 
         private hudBase ShowHUD(qtObject.Scene scene)
         {
@@ -218,6 +274,8 @@ namespace _Scripts.System
                     currentHUD = null;
                     return currentHUD;
                 }
+
+                return null;
             }
             _huds ??= new Dictionary<qtScene.EHud, hudBase>();
 
@@ -229,6 +287,7 @@ namespace _Scripts.System
                 if (temp == null)
                 {
                     tempHud = Instantiate(qtScene.sceneData.huds.Find(x => x.id == scene.hudId).prefab, _canvasOnTop.transform).GetComponent<hudBase>();
+                    tempHud.name = qtScene.sceneData.huds.Find(x => x.id == scene.hudId).prefab.name;
                     tempHud.InitObject();
                     _huds.Add(scene.hudId, tempHud);
                 }
@@ -248,6 +307,53 @@ namespace _Scripts.System
             tempHud.Initialize();
             tempHud.Show();
             return tempHud;
+        }
+
+        private void FadingScene(sceneBase newScene)
+        {
+            Fading(true, Color.black).OnComplete(() =>
+            {
+                stackPopup ??= new Stack<popBase>(); 
+                while (stackPopup.Count > 0)
+                {
+                    stackPopup.Pop().Hide();
+                }
+                currentPopup = null;
+                currentScene = newScene;
+                newScene.Show();
+                Fading(false, Color.black);
+            });
+        }
+
+        private Tween Fading(bool fade, Color color)
+        {
+            _fading.DOKill();
+            _fade = color;
+            _fade.a = 1;
+            if (_fading == null)
+            {
+                _fading = Instantiate(Resources.Load<GameObject>("imgFading"), _canvasOnTop.transform).GetComponent<Image>();
+                _fading.gameObject.SetActive(false);
+                if (_currentSceneData.showHUD)
+                {
+                    _fading.transform.SetSiblingIndex(1);
+                }
+                else
+                {
+                    _fading.transform.SetSiblingIndex(0);
+                }
+                _fading.color = Color.clear;
+            }
+            
+            if (fade)
+            {
+                _fading.gameObject.SetActive(true);
+                return _fading.DOColor(_fade, 0.5f);
+            }
+            else
+            {
+                return _fading.DOColor(Color.clear, 0.25f).SetDelay(0.25f).OnComplete(() => _fading.gameObject.SetActive(false));
+            }
         }
 
         #endregion
