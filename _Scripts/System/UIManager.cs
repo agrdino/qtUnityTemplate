@@ -1,5 +1,8 @@
+using System;
 using System.Collections.Generic;
 using _Prefab.Popup;
+using _Scripts.HUD;
+using _Scripts.qtLib;
 using _Scripts.Scene;
 using DG.Tweening;
 using TMPro;
@@ -40,6 +43,7 @@ namespace _Scripts.System
         private RectTransform _loadingIndicator;
         private Image _fading;
         private TextMeshProUGUI _txtDetail;
+        private UIDialogWebview _webView;
 
         private Dictionary<qtScene.EPopup, popBase> _popups;
         private Dictionary<qtScene.EScene, sceneBase> _scenes;
@@ -72,6 +76,13 @@ namespace _Scripts.System
 
         #region ----- UNITY EVENT -----
 
+        protected override void Init()
+        {
+            base.Init();
+            Application.targetFrameRate = 60;
+            Input.multiTouchEnabled = false;
+        }
+
         private void Update()
         {
             if (Input.GetKey(KeyCode.Escape))
@@ -95,11 +106,20 @@ namespace _Scripts.System
 
         #region ----- PUBLIC FUNCTION -----
 
+        public UIDialogWebview OpenWebView(string path)
+        {
+            if (_webView == null)
+            {
+                _webView = Instantiate(Resources.Load<UIDialogWebview>("UIDialogWebview"), _canvasOnTop.transform);
+            }
+            _webView.LoadURL(path);
+            return _webView;
+        }
         public void ShowLoadingIndicator()
         {
             if (_loadingIndicator == null)
             {
-                _loadingIndicator = Instantiate(Resources.Load<GameObject>("imgLoading"), _canvasOnTop.transform).GetComponent<RectTransform>();
+                _loadingIndicator = Instantiate(Resources.Load<RectTransform>("imgLoading"), _canvasOnTop.transform);
             }
 
             _loadingIndicator.SetSiblingIndex(_canvasOnTop.transform.childCount - 1);
@@ -134,11 +154,20 @@ namespace _Scripts.System
         private Color _fade;
         public void Fading(bool fade)
         {
+            if (!fade)
+            {
+                if (stackPopup.Count > 0 )
+                {
+                    _fading.transform.SetSiblingIndex(currentPopup.transform.GetSiblingIndex() - 1);
+                    return;
+                }
+            }
+            
             _fade = Color.clear;
             _fade.a = 150 / 255f;
             if (_fading == null)
             {
-                _fading = Instantiate(Resources.Load<GameObject>("imgFading"), _canvasOnTop.transform).GetComponent<Image>();
+                _fading = Instantiate(Resources.Load<Image>("imgFading"), _canvasOnTop.transform);
                 _fading.gameObject.SetActive(false);
                 if (_currentSceneData.showHUD)
                 {
@@ -156,6 +185,8 @@ namespace _Scripts.System
                 {
                     return;
                 }
+                
+                _fading.transform.SetSiblingIndex(currentPopup.transform.GetSiblingIndex() - 1);
                 _fading.gameObject.SetActive(true);
                 _fading.DOColor(_fade, 0.25f);
             }
@@ -171,8 +202,9 @@ namespace _Scripts.System
             popBase tempPopup = null;
             if (!_popups.ContainsKey(popupId))
             {
-                tempPopup = Instantiate(qtScene.sceneData.popups.Find(x => x.id == popupId).prefab, _canvasOnTop.transform).GetComponent<popBase>();
-                tempPopup.name = qtScene.sceneData.popups.Find(x => x.id == popupId).prefab.name;
+                var popup = qtScene.sceneData[popupId];
+                tempPopup = Instantiate(popup.prefab, _canvasOnTop.transform).GetComponent<popBase>();
+                tempPopup.name = popup.prefab.name;
                 _popups.Add(popupId, tempPopup);
             }
             else
@@ -180,6 +212,7 @@ namespace _Scripts.System
                 tempPopup = _popups[popupId];
             }
             tempPopup.transform.SetSiblingIndex(_canvasOnTop.transform.childCount - 1);
+            stackPopup.Push(tempPopup);
             currentPopup = tempPopup;
             return (T)tempPopup.Show();
         }
@@ -189,28 +222,33 @@ namespace _Scripts.System
             _scenes ??= new Dictionary<qtScene.EScene, sceneBase>();
             
             sceneBase tempScene = null;
-            var showScene = qtScene.sceneData.sences.Find(x => x.id == scene);
+            var showScene = qtScene.sceneData[scene];
             _currentSceneData = showScene;
             if (!_scenes.ContainsKey(scene))
             {
                 var temp = FindObjectInChildren(_canvas, showScene.scene.name);
                 if (temp == null)
                 {
-                    tempScene = Instantiate(qtScene.sceneData.sences.Find(x => x.id == scene).scene, _canvas.transform).GetComponent<sceneBase>();
-                    tempScene.gameObject.name = qtScene.sceneData.sences.Find(x => x.id == scene).scene.name;
-                    tempScene.InitObject();
+                    var sceneConfig = qtScene.sceneData[scene];
+                    tempScene = Instantiate(sceneConfig.scene, _canvas.transform).GetComponent<sceneBase>();
+                    tempScene.gameObject.name = sceneConfig.scene.name;
+                    tempScene.OnInit();
                     _scenes.Add(scene, tempScene);
                 }
                 else
                 {
                     tempScene = temp.GetComponent<sceneBase>();
-                    tempScene.InitObject();
+                    tempScene.OnInit();
                     _scenes.Add(scene, tempScene);
                 }
             }
             else
             {
                 tempScene = _scenes[scene];
+                if (tempScene.gameObject.activeSelf)
+                {
+                    return (T)tempScene;
+                }
             }
             tempScene.gameObject.SetActive(false);
 
@@ -218,17 +256,23 @@ namespace _Scripts.System
 
             if (currentScene != null)
             {
-                currentScene.Hide();
-                FadingScene(tempScene);
+                var oldScene = currentScene;
+                qtCoroutiner.ExcuteAfterDelayTime(showScene.fadingIn, () => oldScene.Hide());
+                FadingScene(tempScene, showScene.fadingOut, showScene.fadingIn, showScene.showHUD, showScene.hudId);
             }
             else
             {
                 currentScene = tempScene;
+                if (showScene.showHUD && showScene.hudId != qtScene.EHud.None)
+                {
+                    if (currentHUD == null || currentHUD.id != showScene.hudId)
+                    {
+                        currentHUD = ShowHUD(showScene.hudId);
+                    }
+                }
                 tempScene.Show();
             }
-
-            currentHUD = ShowHUD(showScene);
-
+            
             return (T)tempScene;
         }
 
@@ -239,20 +283,20 @@ namespace _Scripts.System
             {
                 return (T)_scenes[scene];
             }
-            var showScene = qtScene.sceneData.sences.Find(x => x.id == scene);
+            var showScene = qtScene.sceneData[scene];
             var temp = FindObjectInChildren(_canvas, showScene.scene.name);
             sceneBase tempScene = null; 
             if (temp == null)
             {
-                tempScene = Instantiate(qtScene.sceneData.sences.Find(x => x.id == scene).scene, _canvas.transform).GetComponent<sceneBase>();
-                tempScene.gameObject.name = qtScene.sceneData.sences.Find(x => x.id == scene).scene.name;
-                tempScene.InitObject();
+                tempScene = Instantiate(showScene.scene, _canvas.transform).GetComponent<sceneBase>();
+                tempScene.gameObject.name = showScene.scene.name;
+                tempScene.OnInit();
                 _scenes.Add(scene, tempScene);
             }
             else
             {
                 tempScene = temp.GetComponent<sceneBase>();
-                tempScene.InitObject();
+                tempScene.OnInit();
                 _scenes.Add(scene, tempScene);
             }
             tempScene.gameObject.SetActive(false);
@@ -264,54 +308,63 @@ namespace _Scripts.System
 
         #region ----- PRIVATE FUNCTION -----
 
-        private hudBase ShowHUD(qtObject.Scene scene)
+        private hudBase ShowHUD(qtScene.EHud hud)
         {
-            if (!scene.showHUD) 
+            if (currentHUD != null)
             {
-                if (currentHUD != null)
+                if (currentHUD.id == hud)
                 {
-                    currentHUD.Hide();
-                    currentHUD = null;
                     return currentHUD;
                 }
-
-                return null;
+                currentHUD.Hide();
+                currentHUD = null;
             }
             _huds ??= new Dictionary<qtScene.EHud, hudBase>();
 
             hudBase tempHud = null;
-            if (!_huds.ContainsKey(scene.hudId))
+            if (!_huds.ContainsKey(hud))
             {
-                var hudName = qtScene.sceneData.huds.Find(x => x.id == scene.hudId).prefab.name;
+                var hudConfig = qtScene.sceneData[hud];
+                var hudName = hudConfig.prefab.name;
                 var temp = FindObjectInChildren(_canvasOnTop, hudName);
                 if (temp == null)
                 {
-                    tempHud = Instantiate(qtScene.sceneData.huds.Find(x => x.id == scene.hudId).prefab, _canvasOnTop.transform).GetComponent<hudBase>();
-                    tempHud.name = qtScene.sceneData.huds.Find(x => x.id == scene.hudId).prefab.name;
-                    tempHud.InitObject();
-                    _huds.Add(scene.hudId, tempHud);
+                    tempHud = Instantiate(hudConfig.prefab, _canvasOnTop.transform).GetComponent<hudBase>();
+                    tempHud.name = hudConfig.prefab.name;
+                    tempHud.OnInit();
+                    _huds.Add(hud, tempHud);
                 }
                 else
                 {
                     tempHud = temp.GetComponent<hudBase>();
-                    tempHud.InitObject();
-                    _huds.Add(scene.hudId, tempHud);
+                    tempHud.OnInit();
+                    _huds.Add(hud, tempHud);
                 }
-
             }
             else
             {
-                tempHud = _huds[scene.hudId];
+                tempHud = _huds[hud];
             }
             tempHud.transform.SetSiblingIndex(0);
             tempHud.Initialize();
-            tempHud.Show();
-            return tempHud;
+            tempHud.id = hud;
+            currentHUD = tempHud;
+            return tempHud.Show();
         }
 
-        private void FadingScene(sceneBase newScene)
+        private void FadingScene(sceneBase newScene, float fadeIn, float fadeOut, bool showHUD = false, qtScene.EHud hud = qtScene.EHud.None)
         {
-            Fading(true, Color.black).OnComplete(() =>
+            Fading(true, Color.black, fadeIn)
+                .OnStart(() =>
+                {
+                    ignoreCast = true;
+                    if (currentHUD != null && currentHUD.id != hud)
+                    {
+                        currentHUD.Hide();
+                        currentHUD = null;
+                    }
+                })
+                .OnComplete(() =>
             {
                 stackPopup ??= new Stack<popBase>(); 
                 while (stackPopup.Count > 0)
@@ -321,38 +374,56 @@ namespace _Scripts.System
                 currentPopup = null;
                 currentScene = newScene;
                 newScene.Show();
+                if (showHUD && hud != qtScene.EHud.None)
+                {
+                    if (currentHUD == null || currentHUD.id != hud)
+                    {
+                        currentHUD = ShowHUD(hud);
+                    }
+                }
+                Fading(false, Color.black, fadeOut);
+            });
+        }
+        
+        private void FadingScene(sceneBase newScene, Action callback)
+        {
+            Fading(true, Color.black).OnComplete(() =>
+            {
+                callback?.Invoke();
                 Fading(false, Color.black);
             });
         }
 
-        private Tween Fading(bool fade, Color color)
+        private Tween Fading(bool fade, Color color, float time = 0.5f)
         {
-            _fading.DOKill();
-            _fade = color;
-            _fade.a = 1;
             if (_fading == null)
             {
                 _fading = Instantiate(Resources.Load<GameObject>("imgFading"), _canvasOnTop.transform).GetComponent<Image>();
                 _fading.gameObject.SetActive(false);
-                if (_currentSceneData.showHUD)
-                {
-                    _fading.transform.SetSiblingIndex(1);
-                }
-                else
-                {
-                    _fading.transform.SetSiblingIndex(0);
-                }
                 _fading.color = Color.clear;
             }
             
+            _fading.transform.SetSiblingIndex(_canvasOnTop.transform.childCount - 1);
+            _fading.DOKill();
+            _fade = color;
+            _fade.a = 1;
+
             if (fade)
             {
                 _fading.gameObject.SetActive(true);
-                return _fading.DOColor(_fade, 0.5f);
+                return _fading.DOColor(_fade, time);
             }
             else
             {
-                return _fading.DOColor(Color.clear, 0.25f).SetDelay(0.25f).OnComplete(() => _fading.gameObject.SetActive(false));
+                if (time == 0)
+                {
+                    return _fading.DOColor(Color.clear, time).OnComplete(() => _fading.gameObject.SetActive(false));
+                }
+                return _fading.DOColor(Color.clear, time).SetDelay(0.25f).OnComplete(() =>
+                {
+                    _fading.gameObject.SetActive(false);
+                    ignoreCast = false;
+                });
             }
         }
 

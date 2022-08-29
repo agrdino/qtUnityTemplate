@@ -9,6 +9,7 @@ using UnityEngine.UI;
 
 namespace _Prefab.Popup
 {
+    [DisallowMultipleComponent]
     public abstract class popBase : MonoBehaviour
     {
         [SerializeField] private Image imgBackground;
@@ -46,14 +47,13 @@ namespace _Prefab.Popup
         public void Hide()
         {
             MoveOut();
-            _Scripts.System.UIManager.Instance.Fading(false);
+            UIManager.Instance.Fading(false);
         }
 
         public popBase Show()
         {
             MoveIn();
-            _Scripts.System.UIManager.Instance.Fading(true);
-            _Scripts.System.UIManager.Instance.stackPopup.Push(this);
+            UIManager.Instance.Fading(true);
             return this;
         }
 

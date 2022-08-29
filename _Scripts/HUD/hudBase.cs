@@ -1,24 +1,33 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-public abstract class hudBase : MonoBehaviour
+namespace _Scripts.HUD
 {
-    public virtual void Initialize()
+    [DisallowMultipleComponent]
+    public abstract class hudBase : MonoBehaviour
     {
-        InitEvent();
-    }
-    protected abstract void InitEvent();
-    public abstract void InitObject();
+        [HideInInspector] public qtScene.EHud id;
+        protected float _width;
+        protected float _height;
 
-    public virtual void Show()
-    {
-        gameObject.SetActive(true);
-    }
+        protected bool _isInit;
+        public virtual void Initialize()
+        {
+            OnEnter();
+        }
+        protected abstract void OnEnter();
+        public abstract void OnInit();
 
-    public virtual void Hide()
-    {
-        gameObject.SetActive(false);
+        protected abstract void OnExit();
+
+        public virtual hudBase Show()
+        {
+            gameObject.SetActive(true);
+            return this;
+        }
+
+        public virtual void Hide()
+        {
+            gameObject.SetActive(false);
+        }
     }
 }

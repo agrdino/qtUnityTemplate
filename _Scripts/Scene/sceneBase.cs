@@ -1,27 +1,30 @@
+using _Scripts.System;
 using UnityEngine;
 
 namespace _Scripts.Scene
 {
+    [DisallowMultipleComponent]
     public abstract class sceneBase : MonoBehaviour
     {
+        protected float _w, _h;
         public virtual void Initialize()
         {
-            InitEvent();
         }
-        protected abstract void InitEvent();
-        public abstract void InitObject();
+        protected abstract void OnEnter();
+        public abstract void OnInit();
 
-        protected abstract void RemoveEvent();
+        protected abstract void OnExit();
 
         public virtual void Show()
         {
             gameObject.SetActive(true);
+            OnEnter();
         }
 
         public virtual void Hide()
         {
             gameObject.SetActive(false);
-            RemoveEvent();
+            OnExit();
         }
     }
 }
