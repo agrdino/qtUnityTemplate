@@ -32,7 +32,20 @@ namespace _Scripts.System
             {
                 return qtPooling.Instance.Spawn(name, prefab, parent, isForceCreateNew).TryGetComponent<T>();;
             }
-
+        }
+        
+        public static T Pooling<T>(string path, Transform parent = null, bool isForceCreateNew = false) where T : qtPoolingObject
+        {
+            var prefab = Resources.Load<GameObject>(path);
+            var name = path.Substring(path.LastIndexOf("/") + 1);
+            if (parent == null)
+            {
+                return qtPooling.Instance.Spawn<T>(name, prefab, isForceCreateNew);
+            }
+            else
+            {
+                return qtPooling.Instance.Spawn<T>(name, prefab, parent, isForceCreateNew);
+            }
         }
     }
 }

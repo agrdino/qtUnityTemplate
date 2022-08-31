@@ -12,10 +12,10 @@ public abstract class qtSingleton<T> : MonoBehaviour where T : MonoBehaviour
                 return _instance;
             }
 
-            qtLogging.LogWarning($"{typeof(T)} instance is NULL, going to create!");
+            qtLogging.LogWarning($"{typeof(T).Name} instance is NULL, going to create!");
             var gameObject = new GameObject
             {
-                name = typeof(T).ToString()
+                name = typeof(T).Name
             };
             _instance = gameObject.AddComponent<T>();
 

@@ -156,9 +156,9 @@ namespace _Scripts.System
         {
             if (!fade)
             {
-                if (stackPopup.Count > 0 )
+                _fading.transform.SetSiblingIndex(currentPopup.transform.GetSiblingIndex() - 1);
+                if (stackPopup.Count > 1 )
                 {
-                    _fading.transform.SetSiblingIndex(currentPopup.transform.GetSiblingIndex() - 1);
                     return;
                 }
             }

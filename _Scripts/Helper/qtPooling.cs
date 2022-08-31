@@ -5,89 +5,103 @@ using UnityEngine;
 
 public class qtPooling : qtSingleton<qtPooling>
 {
-    private Dictionary<string, ObjectPool> _pools;
-    private Dictionary<string, ScriptPool> _poolsComponent;
+    private Dictionary<string, qtObjectPool> _pools;
+    private Dictionary<string, qtScriptPool> _poolsComponent;
     
-    public GameObject Spawn(string name, GameObject prefab)
+    protected override void Init()
     {
-        _pools ??= new Dictionary<string, ObjectPool>();
+        base.Init();
+        DontDestroyOnLoad(this);
+    }
+
+    public GameObject Spawn(string name, GameObject prefab, bool isForceCreateNew = false)
+    {
+        _pools ??= new Dictionary<string, qtObjectPool>();
         if (!_pools.ContainsKey(name))
         {
-            _pools.Add(name, new ObjectPool());
+            _pools.Add(name, new qtObjectPool());
         }
 
         var pool = _pools[name];
-        return pool.Spawn(prefab);
+        return pool.Spawn(prefab, isForceCreateNew);
     }
     
-    public GameObject Spawn(string name, GameObject prefab, Transform parent)
+    public GameObject Spawn(string name, GameObject prefab, Transform parent, bool isForceCreateNew = false)
     {
-        _pools ??= new Dictionary<string, ObjectPool>();
+        _pools ??= new Dictionary<string, qtObjectPool>();
         if (!_pools.ContainsKey(name))
         {
-            _pools.Add(name, new ObjectPool());
+            _pools.Add(name, new qtObjectPool());
         }
 
         var pool = _pools[name];
-        return pool.Spawn(prefab, parent);
+        return pool.Spawn(prefab, parent, isForceCreateNew);
     }
     
-    public GameObject Spawn(string name, GameObject prefab, Vector3 position, Quaternion rotation, Transform parent)
+    public GameObject Spawn(string name, GameObject prefab, Vector3 position, Quaternion rotation, Transform parent, bool isForceCreateNew = false)
     {
-        _pools ??= new Dictionary<string, ObjectPool>();
+        _pools ??= new Dictionary<string, qtObjectPool>();
         if (!_pools.ContainsKey(name))
         {
-            _pools.Add(name, new ObjectPool());
+            _pools.Add(name, new qtObjectPool());
         }
 
         var pool = _pools[name];
-        return pool.Spawn(prefab, position, rotation, parent);
+        return pool.Spawn(prefab, position, rotation, parent, isForceCreateNew);
     }
     
-    public T Spawn<T>(string name, GameObject prefab) where T : PoolingObject
+    public T Spawn<T>(string name, GameObject prefab, bool isForceCreateNew = false) where T : qtPoolingObject
     {
-        _poolsComponent ??= new Dictionary<string, ScriptPool>();
+        _poolsComponent ??= new Dictionary<string, qtScriptPool>();
         if (!_poolsComponent.ContainsKey(name))
         {
-            _poolsComponent.Add(name, new ScriptPool());
+            _poolsComponent.Add(name, new qtScriptPool());
         }
 
         var pool = _poolsComponent[name];
-        return pool.Spawn<T>(prefab);
+        return pool.Spawn<T>(prefab, isForceCreateNew);
     }
     
-    public T Spawn<T>(string name, GameObject prefab, Transform parent) where T : PoolingObject
+    public T Spawn<T>(string name, GameObject prefab, Transform parent, bool isForceCreateNew = false) where T : qtPoolingObject
     {
-        _poolsComponent ??= new Dictionary<string, ScriptPool>();
+        _poolsComponent ??= new Dictionary<string, qtScriptPool>();
         if (!_poolsComponent.ContainsKey(name))
         {
-            _poolsComponent.Add(name, new ScriptPool());
+            _poolsComponent.Add(name, new qtScriptPool());
         }
 
         var pool = _poolsComponent[name];
-        return pool.Spawn<T>(prefab, parent);
+        return pool.Spawn<T>(prefab, parent, isForceCreateNew);
     }
     
-    public T Spawn<T>(string name, GameObject prefab, Vector3 position, Quaternion rotation, Transform parent) where T : PoolingObject
+    public T Spawn<T>(string name, GameObject prefab, Vector3 position, Quaternion rotation, Transform parent, bool isForceCreateNew = false) where T : qtPoolingObject
     {
-        _poolsComponent ??= new Dictionary<string, ScriptPool>();
+        _poolsComponent ??= new Dictionary<string, qtScriptPool>();
         if (!_poolsComponent.ContainsKey(name))
         {
-            _poolsComponent.Add(name, new ScriptPool());
+            _poolsComponent.Add(name, new qtScriptPool());
         }
 
         var pool = _poolsComponent[name];
-        return pool.Spawn<T>(prefab, position, rotation, parent).GetComponent<T>();
+        return pool.Spawn<T>(prefab, position, rotation, parent, isForceCreateNew).GetComponent<T>();
     }
 }
 
-public class ObjectPool
+public class qtObjectPool
 {
     private List<GameObject> _pool;
 
-    public GameObject Spawn(GameObject prefab)
+    public GameObject Spawn(GameObject prefab, bool isForceCreateNew)
     {
         _pool ??= new List<GameObject>();
+
+        if (isForceCreateNew)
+        {
+            var forceNewItem = Object.Instantiate(prefab);
+            _pool.Add(forceNewItem);
+            return forceNewItem;
+        }
+        
         foreach (var item in _pool)
         {
             if (!item.activeSelf)
@@ -102,9 +116,17 @@ public class ObjectPool
         return newItem;
     }  
     
-    public GameObject Spawn(GameObject prefab, Transform parent)
+    public GameObject Spawn(GameObject prefab, Transform parent, bool isForceCreateNew)
     {
         _pool ??= new List<GameObject>();
+        
+        if (isForceCreateNew)
+        {
+            var forceNewItem = Object.Instantiate(prefab, parent);
+            _pool.Add(forceNewItem);
+            return forceNewItem;
+        }
+        
         foreach (var item in _pool)
         {
             if (!item.activeSelf)
@@ -121,9 +143,17 @@ public class ObjectPool
         return newItem;
     }
     
-    public GameObject Spawn(GameObject prefab, Vector3 position, Quaternion rotation, Transform parent)
+    public GameObject Spawn(GameObject prefab, Vector3 position, Quaternion rotation, Transform parent, bool isForceCreateNew)
     {
         _pool ??= new List<GameObject>();
+        
+        if (isForceCreateNew)
+        {
+            var forceNewItem = Object.Instantiate(prefab, position, rotation, parent);
+            _pool.Add(forceNewItem);
+            return forceNewItem;
+        }
+
         foreach (var item in _pool)
         {
             if (!item.activeSelf)
@@ -143,12 +173,20 @@ public class ObjectPool
     }
 }
 
-public class ScriptPool
+public class qtScriptPool
 {
-    private List<PoolingObject> _pool;
-    public T Spawn<T>(GameObject prefab) where T : PoolingObject
+    private List<qtPoolingObject> _pool;
+    public T Spawn<T>(GameObject prefab, bool isForceCreateNew) where T : qtPoolingObject
     {
-        _pool ??= new List<PoolingObject>();
+        _pool ??= new List<qtPoolingObject>();
+
+        if (isForceCreateNew)
+        {
+            var forceNewItem = Object.Instantiate(prefab).transform.TryGetComponent<T>();
+            _pool.Add(forceNewItem);
+            return forceNewItem;
+        }
+        
         foreach (var item in _pool)
         {
             if (!item.gameObject.activeSelf)
@@ -164,9 +202,17 @@ public class ScriptPool
         return newItem;
     }  
     
-    public T Spawn<T>(GameObject prefab, Transform parent) where T : PoolingObject
+    public T Spawn<T>(GameObject prefab, Transform parent, bool isForceCreateNew) where T : qtPoolingObject
     {
-        _pool ??= new List<PoolingObject>();
+        _pool ??= new List<qtPoolingObject>();
+        
+        if (isForceCreateNew)
+        {
+            var forceNewItem = Object.Instantiate(prefab, parent).transform.TryGetComponent<T>();
+            _pool.Add(forceNewItem);
+            return forceNewItem;
+        }
+        
         foreach (var item in _pool)
         {
             if (!item.gameObject.activeSelf)
@@ -184,9 +230,17 @@ public class ScriptPool
         return newItem;
     }
     
-    public T Spawn<T>(GameObject prefab, Vector3 position, Quaternion rotation, Transform parent) where T : PoolingObject
+    public T Spawn<T>(GameObject prefab, Vector3 position, Quaternion rotation, Transform parent, bool isForceCreateNew) where T : qtPoolingObject
     {
-        _pool ??= new List<PoolingObject>();
+        _pool ??= new List<qtPoolingObject>();
+        
+        if (isForceCreateNew)
+        {
+            var forceNewItem = Object.Instantiate(prefab, position, rotation, parent).transform.TryGetComponent<T>();
+            _pool.Add(forceNewItem);
+            return forceNewItem;
+        }
+
         foreach (var item in _pool)
         {
             if (!item.gameObject.activeSelf)
@@ -207,7 +261,8 @@ public class ScriptPool
     }
 }
 
-public abstract class PoolingObject : MonoBehaviour
+[DisallowMultipleComponent]
+public abstract class qtPoolingObject : MonoBehaviour
 {
-    public abstract void FactoryReset();
+    public virtual void FactoryReset(){}
 }
