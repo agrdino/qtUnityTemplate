@@ -1,6 +1,7 @@
 using System;
 using _Scripts.Helper;
 using _Scripts.qtLib;
+using _Scripts.qtLib.Extension;
 using _Scripts.System;
 using DG.Tweening;
 using TMPro;
@@ -28,7 +29,8 @@ namespace _Prefab.Popup
 
         [SerializeField] protected AnimType _moveIn = AnimType.Left;
         [SerializeField] protected AnimType _moveOut = AnimType.Right;
-        
+
+        protected bool keepShowing;
         protected virtual void OnEnable()
         {
             btnClose?.onClick.AddListener(OnButtonCloseClick);
@@ -46,14 +48,27 @@ namespace _Prefab.Popup
 
         public void Hide()
         {
+            if (keepShowing)
+            {
+                keepShowing = false;
+                return;
+            }
             MoveOut();
+            UIManager.Instance.HidePopup(this);
             UIManager.Instance.Fading(false);
         }
 
-        public popBase Show()
+        public popBase Show(Action beforeShow = null)
         {
             MoveIn();
-            UIManager.Instance.Fading(true);
+            return this;
+        }
+
+        public popBase KeepShowing()
+        {
+            ForceUpdateScale();
+            transform.DOKill();
+            keepShowing = true;
             return this;
         }
 
@@ -148,6 +163,11 @@ namespace _Prefab.Popup
         {
             _moveIn = AnimType.Left;
             _moveOut = AnimType.Right;
+        }
+
+        protected void ForceUpdateScale()
+        {
+            (transform.GetChild(0) as RectTransform)?.ForceUpdateScale();
         }
     }
 }

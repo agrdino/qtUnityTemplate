@@ -24,18 +24,41 @@ public class qtScene
         ChangeInfo = 2,
         Setting = 3,
         ConfirmPlayGame = 4,
-        MergeCard = 5,
-        SplitCard = 6,
+        Register,
+        Conversation,
+        Reply,
+        CourseInfo,
+        CreatePost,
+        ReportPost,
+        CreateDataLink,
+        Social,
+        LoginDataLink,
+        ChangeName,
+        SoundSetting,
+        NotiSetting,
+        UserInfo,
+        ConfirmRule
     }
 
     public enum EScene
     {
-        MainMenu = 0,
-        GameScene = 1
+        MenuScene = 0,
+        GameScene = 1,
+        LoginScene = 2,
+        ChangeDesignScene = 3,
+        ForumScene = 4,
+        CourseScene = 5,
+        MyPageScene = 6,
+        IntroScene = 7,
+        InnerChild = 8,
+        LoadingScene = 9,
+        SettingScene = 10,
+        UserAvatarScene = 11
     }
 
     public enum EHud
     {
-        Menu = 0
+        None = 0,
+        Menu = 1
     }
 }

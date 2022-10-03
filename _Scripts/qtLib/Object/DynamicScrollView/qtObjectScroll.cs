@@ -4,7 +4,7 @@ using UnityEngine;
 namespace _Scripts.qtLib
 {
     [DisallowMultipleComponent]
-    public abstract class qtObjectScroll : MonoBehaviour
+    public abstract class qtObjectScroll : qtPoolingObject
     {
         public enum ObjectScrollState
         {

@@ -20,24 +20,23 @@ namespace _Scripts.System
             }
         }
 
-        public static T Instantiate<T>(string path, Transform parent = null, bool isForceCreateNew = false) where T : Component
+        public static T Pooling<T>(string path, Transform parent = null, bool isForceCreateNew = false) where T : qtPoolingObject
         {
             var prefab = Resources.Load<GameObject>(path);
             var name = path.Substring(path.LastIndexOf("/") + 1);
             if (parent == null)
             {
-                return qtPooling.Instance.Spawn(name, prefab, isForceCreateNew).TryGetComponent<T>();
+                return qtPooling.Instance.Spawn<T>(name, prefab, isForceCreateNew);
             }
             else
             {
-                return qtPooling.Instance.Spawn(name, prefab, parent, isForceCreateNew).TryGetComponent<T>();;
+                return qtPooling.Instance.Spawn<T>(name, prefab, parent, isForceCreateNew);
             }
         }
         
-        public static T Pooling<T>(string path, Transform parent = null, bool isForceCreateNew = false) where T : qtPoolingObject
+        public static T Pooling<T>(GameObject prefab, Transform parent = null, bool isForceCreateNew = false) where T : qtPoolingObject
         {
-            var prefab = Resources.Load<GameObject>(path);
-            var name = path.Substring(path.LastIndexOf("/") + 1);
+            var name = prefab.name;
             if (parent == null)
             {
                 return qtPooling.Instance.Spawn<T>(name, prefab, isForceCreateNew);

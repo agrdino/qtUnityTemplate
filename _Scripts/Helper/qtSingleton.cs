@@ -27,8 +27,8 @@ public abstract class qtSingleton<T> : MonoBehaviour where T : MonoBehaviour
     {
         if (_instance != null && _instance != this)
         {
-            Debug.LogError($"Destroy {name} instance in {gameObject.name}");
-            Destroy(this);
+            Debug.LogError($"Destroy {typeof(T)} instance in {gameObject.name}");
+            Destroy(this as T);
         }
         else
         {

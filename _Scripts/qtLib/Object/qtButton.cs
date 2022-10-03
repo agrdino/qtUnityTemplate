@@ -11,7 +11,7 @@ namespace _Scripts.qtLib
     [DisallowMultipleComponent]
     [RequireComponent(typeof(Button))]
     [RequireComponent(typeof(Image))]
-    public class qtButton : MonoBehaviour
+    public class qtButton : qtPoolingObject
     {
         //Property
         private Text _text;
@@ -59,6 +59,7 @@ namespace _Scripts.qtLib
         }
 
         private Button _button;
+
         public Button button
         {
             get
@@ -81,6 +82,13 @@ namespace _Scripts.qtLib
         public Color selectColor = Color.cyan;
         public Color norColor = Color.white;
         public Color disableColor = Color.gray;
+        public Color isUsedColor = Color.green;
+
+        public Color color
+        {
+            get => button.image.color;
+            set => button.image.color = value;
+        }
 
         private bool _isActive;
         public bool isActive
@@ -89,8 +97,9 @@ namespace _Scripts.qtLib
             set
             {
                 button.interactable = value;
-                button.image.color = value ? disableColor : norColor;
+                color = value ? norColor : disableColor;
                 _isActive = value;
+                _unTouchable = !value;
             }
         }
 
@@ -100,17 +109,44 @@ namespace _Scripts.qtLib
             get => _isSelect;
             set
             {
-                _button.image.color = value ? selectColor : norColor;
+                color = value ? selectColor : norColor;
                 _isSelect = value;
             }
         }
 
-        public Color color
+
+        private bool _isUsed;
+        public bool isUsed
         {
-            get => _button.image.color;
-            set => _button.image.color = value;
+            get => _isUsed;
+            set
+            {
+                _isUsed = value;
+                color = value ? isUsedColor : norColor;
+            }
         }
 
+        private bool _unTouchable;
+
+        public bool unTouchable
+        {
+            get => _unTouchable;
+            set
+            {
+                button.interactable = !value;
+                _unTouchable = value;
+            }
+        }
+
+        public override void FactoryReset()
+        {
+            base.FactoryReset();
+            isSelect = false;
+            isUsed = false;
+            isActive = true;
+            onClick.RemoveAllListeners();
+            onPointerClick.RemoveAllListeners();
+        }
     }
 
     #region ----- Internal Class -----

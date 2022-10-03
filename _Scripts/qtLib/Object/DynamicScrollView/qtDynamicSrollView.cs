@@ -129,7 +129,7 @@ namespace _Scripts.qtLib
 
             for (int i = 0; i < content.Count; i++)
             {
-                var temp = System.DataManager.Instantiate<T>(path, _container, true);
+                var temp = System.DataManager.Pooling<T>(path, _container, true);
                 temp.gameObject.name = i.ToString();
                 temp.index = i;
                 temp.Initialize(content[i], i, Vector3.zero).state = qtObjectScroll.ObjectScrollState.InView;

@@ -8,19 +8,66 @@ namespace Editor
 {
     public class Shortcut
     {
-        [MenuItem("qtDino/Open scene/Menu scene &1")]
+        [MenuItem("qtDino/Open scene/Main Scene &1")]
         private static void OpenMenuScene()
         {
-            OpenScene("MenuScene");
+            OpenScene("MainScene");
         }
-        private static void OpenScene(string name)
+        
+        [MenuItem("qtDino/ConfigScene &2")]
+        private static void OpenConfigScene()
         {
-            if (EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
-            {
-                EditorSceneManager.OpenScene("Assets/Scenes/" + name + ".unity");
-            }    
+            EditorUtility.OpenPropertyEditor(Resources.Load<SceneData>("_Data/SceneConfig"));
         }
 
+        [MenuItem("qtDino/Popup folder &3")]
+        private static void OpenPopupFolder()
+        {
+            ShowFolderContents(AssetDatabase.LoadAssetAtPath<Object>("Assets/_Scripts/Popup").GetInstanceID());
+        }
+        
+        [MenuItem("qtDino/Scene Prefab/Scene folder &4")]
+        private static void OpenSceneFolder()
+        {
+            ShowFolderContents(AssetDatabase.LoadAssetAtPath<Object>("Assets/_Scripts/Scene").GetInstanceID());
+        }
+
+        [MenuItem("qtDino/Scene Prefab/Login Scene")]
+        private static void OpenLoginPrefab()
+        {
+            OpenPrefab("Assets/_Scripts/Scene/LoginScene/LoginScene");
+        }
+
+        [MenuItem("qtDino/Scene Prefab/Menu Scene")]
+        private static void OpenMenuPrefab()
+        {
+            OpenPrefab("Assets/_Scripts/Scene/MenuScene/MenuScene");
+        }
+
+        [MenuItem("qtDino/Scene Prefab/Course Scene")]
+        private static void OpenCoursePrefab()
+        {
+            OpenPrefab("Assets/_Scripts/Scene/CourseScene/CourseScene");
+        }
+
+        [MenuItem("qtDino/Scene Prefab/Forum Scene")]
+        private static void OpenForumPrefab()
+        {
+            OpenPrefab("Assets/_Scripts/Scene/ForumScene/ForumScene");
+        }
+
+        [MenuItem("qtDino/Scene Prefab/ChangeDesign Scene")]
+        private static void OpenChangeDesignPrefab()
+        {
+            OpenPrefab("Assets/_Scripts/Scene/ChangeDesignScene/ChangeDesignScene");
+        }
+
+        [MenuItem("qtDino/Scene Prefab/MyPage Scene")]
+        private static void OpenMyPagePrefab()
+        {
+            OpenPrefab("Assets/_Scripts/Scene/MyPageScene/MyPageScene");
+        }
+        
         [MenuItem("qtDino/Data/Clear player data")]
         private static void ClearPlayerData()
         {
@@ -30,7 +77,7 @@ namespace Editor
                 Debug.LogError("Clear player data");
             }
         }
-        
+
         [MenuItem("qtDino/Data/Clear player prefs")]
         private static void ClearPlayerPrefs()
         {

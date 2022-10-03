@@ -12,9 +12,13 @@ namespace _Scripts.Scene
         }
         protected abstract void OnEnter();
         public abstract void OnInit();
-
         protected abstract void OnExit();
 
+        public virtual void OnBack()
+        {
+            //Temp
+            UIManager.Instance.ShowScene<MenuScene>(qtScene.EScene.MenuScene);
+        }
         public virtual void Show()
         {
             gameObject.SetActive(true);
