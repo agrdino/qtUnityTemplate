@@ -12,10 +12,10 @@ namespace _Scripts.HUD
         protected bool _isInit;
         public virtual void Initialize()
         {
-            OnEnter();
+            InitEvent();
         }
-        protected abstract void OnEnter();
-        public abstract void OnInit();
+        public abstract void InitEvent();
+        public abstract void InitObject();
 
         protected abstract void OnExit();
 

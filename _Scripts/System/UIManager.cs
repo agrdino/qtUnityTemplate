@@ -7,6 +7,7 @@ using _Scripts.qtLib;
 using _Scripts.Scene;
 using DG.Tweening;
 using TMPro;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
 using static qtHelper;
@@ -44,7 +45,6 @@ namespace _Scripts.System
         private RectTransform _loadingIndicator;
         private Image _fading;
         private TextMeshProUGUI _txtDetail;
-        private UIDialogWebview _webView;
 
         private Dictionary<qtScene.EPopup, popBase> _popups;
         private Dictionary<qtScene.EScene, sceneBase> _scenes;
@@ -121,12 +121,6 @@ namespace _Scripts.System
         {
             if (Input.GetKeyDown(KeyCode.Escape))
             {
-                if (_webView != null && _webView.gameObject.activeSelf)
-                {
-                    _webView.Back();
-                    return;
-                }
-
                 if (stackPopup.Count > 0)
                 {
                     stackPopup[^1].Hide();
@@ -154,16 +148,6 @@ namespace _Scripts.System
 
         #region ----- PUBLIC FUNCTION -----
 
-        public UIDialogWebview OpenWebView(string path, string title = null)
-        {
-            if (_webView == null)
-            {
-                _webView = Instantiate(Resources.Load<UIDialogWebview>("UIDialogWebview"), _canvasOnTop.transform);
-            }
-            _webView.SetTitle(title);
-            _webView.LoadURL(path);
-            return _webView;
-        }
         public void ShowLoadingIndicator()
         {
             _loadingIndicator.transform.eulerAngles = Vector3.zero;
@@ -276,13 +260,13 @@ namespace _Scripts.System
                     var sceneConfig = qtScene.sceneData[scene];
                     tempScene = Instantiate(sceneConfig.scene, _canvas.transform).GetComponent<sceneBase>();
                     tempScene.gameObject.name = sceneConfig.scene.name;
-                    tempScene.OnInit();
+                    tempScene.InitObject();
                     _scenes.Add(scene, tempScene);
                 }
                 else
                 {
                     tempScene = temp.GetComponent<sceneBase>();
-                    tempScene.OnInit();
+                    tempScene.InitObject();
                     _scenes.Add(scene, tempScene);
                 }
             }
@@ -344,13 +328,13 @@ namespace _Scripts.System
             {
                 tempScene = Instantiate(showScene.scene, _canvas.transform).GetComponent<sceneBase>();
                 tempScene.gameObject.name = showScene.scene.name;
-                tempScene.OnInit();
+                tempScene.InitObject();
                 _scenes.Add(scene, tempScene);
             }
             else
             {
                 tempScene = temp.GetComponent<sceneBase>();
-                tempScene.OnInit();
+                tempScene.InitObject();
                 _scenes.Add(scene, tempScene);
             }
             tempScene.gameObject.SetActive(false);
@@ -385,13 +369,13 @@ namespace _Scripts.System
                 {
                     tempHud = Instantiate(hudConfig.prefab, _canvasOnTop.transform).GetComponent<hudBase>();
                     tempHud.name = hudConfig.prefab.name;
-                    tempHud.OnInit();
+                    tempHud.InitObject();
                     _huds.Add(hud, tempHud);
                 }
                 else
                 {
                     tempHud = temp.GetComponent<hudBase>();
-                    tempHud.OnInit();
+                    tempHud.InitObject();
                     _huds.Add(hud, tempHud);
                 }
             }

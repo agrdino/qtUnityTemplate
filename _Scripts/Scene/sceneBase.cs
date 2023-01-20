@@ -1,3 +1,4 @@
+using _Scripts.Scene.MainMenuScene;
 using _Scripts.System;
 using UnityEngine;
 
@@ -10,8 +11,8 @@ namespace _Scripts.Scene
         public virtual void Initialize()
         {
         }
-        protected abstract void OnEnter();
-        public abstract void OnInit();
+        protected abstract void InitEvent();
+        public abstract void InitObject();
         protected abstract void OnExit();
 
         public virtual void OnBack()
@@ -22,7 +23,7 @@ namespace _Scripts.Scene
         public virtual void Show()
         {
             gameObject.SetActive(true);
-            OnEnter();
+            InitEvent();
         }
 
         public virtual void Hide()

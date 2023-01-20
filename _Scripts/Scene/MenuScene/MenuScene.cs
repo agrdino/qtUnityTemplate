@@ -5,7 +5,7 @@ using static qtHelper;
 
 namespace _Scripts.Scene.MainMenuScene
 {
-    public class MainMenuScene : sceneBase
+    public class MenuScene : sceneBase
     {
         #region ----- VARIABLE -----
         
@@ -24,6 +24,11 @@ namespace _Scripts.Scene.MainMenuScene
         
         public override void InitObject()
         {
+        }
+
+        protected override void OnExit()
+        {
+            
         }
 
         #endregion

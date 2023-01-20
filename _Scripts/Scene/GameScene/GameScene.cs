@@ -1,4 +1,5 @@
 using _Scripts.System;
+using NotImplementedException = System.NotImplementedException;
 
 namespace _Scripts.Scene.GameScene
 {
@@ -17,17 +18,12 @@ namespace _Scripts.Scene.GameScene
         {
         }
 
+        protected override void OnExit()
+        {
+            
+        }
+
         #region ----- ANIMATION -----
-
-        public override void Show()
-        {
-            base.Show();
-        }
-
-        public override void Hide()
-        {
-            base.Hide();
-        }
 
         #endregion
     }

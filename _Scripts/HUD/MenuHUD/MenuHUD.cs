@@ -1,3 +1,4 @@
+using _Scripts.HUD;
 using static qtHelper;
 
 public class MenuHUD : hudBase
@@ -7,7 +8,7 @@ public class MenuHUD : hudBase
 
     #endregion
 
-    protected override void InitEvent()
+    public override void InitEvent()
     {
     }
 
@@ -20,19 +21,12 @@ public class MenuHUD : hudBase
         base.Initialize();
     }
 
-    private void OnDisable()
+    protected override void OnExit()
     {
+        
     }
 
     #region ----- ANIMATION -----
-
-    public override void Show()
-    {
-    }
-
-    public override void Hide()
-    {
-    }
 
     #endregion
 
