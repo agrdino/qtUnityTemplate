@@ -1,4 +1,6 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using _Scripts.Helper;
 using _Scripts.qtLib;
 using _Scripts.qtLib.Extension;
@@ -13,6 +15,7 @@ namespace _Prefab.Popup
     [DisallowMultipleComponent]
     public abstract class popBase : MonoBehaviour
     {
+        [SerializeField] protected TextMeshProUGUI txtTitle;
         [SerializeField] private Image imgBackground;
         [SerializeField] private qtButton btnClose;
         [SerializeField] protected TextMeshProUGUI txtContent;

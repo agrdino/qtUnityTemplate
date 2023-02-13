@@ -10,7 +10,6 @@ namespace _Prefab.Popup.YesNoPopup
         [SerializeField] private Button btnNo;
     
         private Action _evtYes;
-        private Action _evtNo;
         protected override void OnEnable()
         {
             base.OnEnable();
@@ -18,10 +17,10 @@ namespace _Prefab.Popup.YesNoPopup
             btnNo.onClick.AddListener(OnButtonNoClick);
         }
 
-        public YesNoPopup Initialize(string content, Action yes, Action no = null)
+        public YesNoPopup Initialize(string title, string content, Action yes)
         {
+            txtTitle.text = title;
             _evtYes = yes;
-            _evtNo = no;
             txtContent.text = content;
             return this;
         }
@@ -35,7 +34,6 @@ namespace _Prefab.Popup.YesNoPopup
 
         private void OnButtonNoClick()
         {
-            _evtNo.Invoke();
             Hide();
         }
 

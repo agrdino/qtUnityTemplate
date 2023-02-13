@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Threading;
 using _Prefab.Popup;
+using _Prefab.Popup.YesNoPopup;
 using _Scripts.HUD;
 using _Scripts.qtLib;
 using _Scripts.Scene;
@@ -58,22 +60,6 @@ namespace _Scripts.System
         
         private void Start()
         {
-            
-        
-#if CHEATER
-            CheatTool.Instance.Init();
-            CheatTool.Instance.ShowDebugButton();
-#else
-        Debug.unityLogger.logEnabled = false;
-#endif
-
-#if DEV
-        Debug.Log("Devvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv");
-#else
-        Debug.Log("QCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC");
-
-#endif
-            
             InitObject();
             Initialize();
             ShowScene<sceneBase>(startScene);
@@ -206,7 +192,34 @@ namespace _Scripts.System
             }
         }
 
-        public T ShowPopup<T>(qtScene.EPopup popupId) where T : popBase
+        //Popup
+        public IEnumerator<T> ShowPopupWithoutWait<T>(qtScene.EPopup popupId, Action beforeShow = null, Action afterShow = null) where T : popBase
+        {
+            _popups ??= new Dictionary<qtScene.EPopup, popBase>();
+            popBase tempPopup = null;
+            if (!_popups.ContainsKey(popupId))
+            {
+                var popup = qtScene.sceneData[popupId];
+                tempPopup = Instantiate(popup.prefab, _canvasOnTop.transform).GetComponent<popBase>();
+                tempPopup.name = popup.prefab.name;
+                _popups.Add(popupId, tempPopup);
+            }
+            else
+            {
+                tempPopup = _popups[popupId];
+                if (tempPopup.gameObject.activeSelf)
+                {
+                    yield return tempPopup.KeepShowing() as T;
+                }
+            }
+            tempPopup.transform.SetSiblingIndex(_canvasOnTop.transform.childCount - 1);
+            stackPopup.Add(tempPopup);
+            currentPopup = tempPopup;
+            Fading(true);
+            yield return tempPopup.Show() as T;
+        }
+        
+        public T ShowPopup<T>(qtScene.EPopup popupId, Action beforeShow = null, Action afterShow = null) where T : popBase
         {
             _popups ??= new Dictionary<qtScene.EPopup, popBase>();
             popBase tempPopup = null;
@@ -229,7 +242,7 @@ namespace _Scripts.System
             stackPopup.Add(tempPopup);
             currentPopup = tempPopup;
             Fading(true);
-            return (T)tempPopup.Show();
+            return tempPopup.Show() as T;
         }
 
         public void HidePopup(popBase popup)
@@ -245,7 +258,77 @@ namespace _Scripts.System
             }
         }
 
-        public T ShowScene<T>(qtScene.EScene scene) where T : sceneBase
+        //Scene
+        public IEnumerator<T> ShowSceneWithOutWait<T>(qtScene.EScene scene) where T : sceneBase
+        {
+            _scenes ??= new Dictionary<qtScene.EScene, sceneBase>();
+            
+            sceneBase tempScene = null;
+            var showScene = qtScene.sceneData[scene];
+            _currentSceneData = showScene;
+            if (!_scenes.ContainsKey(scene))
+            {
+                var temp = FindObjectInChildren(_canvas, showScene.scene.name);
+                if (temp == null)
+                {
+                    var sceneConfig = qtScene.sceneData[scene];
+                    tempScene = Instantiate(sceneConfig.scene, _canvas.transform).GetComponent<sceneBase>();
+                    tempScene.gameObject.name = sceneConfig.scene.name;
+                    tempScene.InitObject();
+                    _scenes.Add(scene, tempScene);
+                }
+                else
+                {
+                    tempScene = temp.GetComponent<sceneBase>();
+                    tempScene.InitObject();
+                    _scenes.Add(scene, tempScene);
+                }
+            }
+            else
+            {
+                tempScene = _scenes[scene];
+                if (tempScene.gameObject.activeSelf)
+                {
+                    FadingScene(tempScene, showScene.fadingIn, showScene.fadingOut, showScene.showHUD, showScene.hudId,
+                        () =>
+                        {
+                            tempScene.Hide();
+                            tempScene.Initialize();
+                        });
+                    yield return (T)tempScene;
+                }
+            }
+            tempScene.gameObject.SetActive(false);
+
+
+            if (currentScene != null)
+            {
+                var oldScene = currentScene;
+                FadingScene(tempScene, showScene.fadingIn, showScene.fadingOut, showScene.showHUD, showScene.hudId,
+                    () =>
+                    {
+                        oldScene.Hide();
+                        tempScene.Initialize();
+                    });
+            }
+            else
+            {
+                currentScene = tempScene;
+                if (showScene.showHUD && showScene.hudId != qtScene.EHud.None)
+                {
+                    if (currentHUD == null || currentHUD.id != showScene.hudId)
+                    {
+                        currentHUD = ShowHUD(showScene.hudId);
+                    }
+                }
+                tempScene.Initialize();
+                tempScene.Show();
+            }
+            
+            yield return (T)tempScene;
+        }
+        
+        public T ShowScene<T>(qtScene.EScene scene, Action beforeShow = null, Action afterShow = null) where T : sceneBase
         {
             _scenes ??= new Dictionary<qtScene.EScene, sceneBase>();
             
@@ -314,7 +397,7 @@ namespace _Scripts.System
             return (T)tempScene;
         }
 
-        public T GetScene<T>(qtScene.EScene scene) where T : sceneBase
+        public T GetScene<T>(qtScene.EScene scene, Action beforeShow = null, Action afterShow = null) where T : sceneBase
         {
             _scenes ??= new Dictionary<qtScene.EScene, sceneBase>();
             if (_scenes.ContainsKey(scene))
@@ -341,6 +424,18 @@ namespace _Scripts.System
 
             return (T)tempScene;
         }
+        
+        public IEnumerator<bool> ShowConfirmPopup(string title, string message)
+        {
+            var result = false;
+            var popup = ShowPopupWithoutWait<YesNoPopup>(qtScene.EPopup.YesNo).Current
+                .Initialize(title, message, () =>
+                {
+                    result = true;
+                });
+            yield return result;
+        }
+
         
         #endregion
 
@@ -396,7 +491,7 @@ namespace _Scripts.System
                 .OnStart(() =>
                 {
                     ignoreCast = true;
-                    if (currentHUD != null && currentHUD.id != hud)
+                    if (currentHUD != null && (currentHUD.id == qtScene.EHud.None || !showHUD || currentHUD.id != hud))
                     {
                         currentHUD.Hide();
                         currentHUD = null;

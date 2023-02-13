@@ -1,18 +1,45 @@
+using System;
+using _Scripts.qtLib.Extension;
+using _Scripts.System;
 using DG.Tweening;
 using TMPro;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 namespace _Scripts.qtLib
 {
+    [Serializable]
+    public enum BtnTransitionType
+    {
+        Color = 1,
+        Image = 2
+    }
+    
     [DisallowMultipleComponent]
     [RequireComponent(typeof(Button))]
     [RequireComponent(typeof(Image))]
+    [Serializable]
     public class qtButton : qtPoolingObject
     {
+        public BtnTransitionType TransitionType = BtnTransitionType.Color;
+        
+        [HideInInspector] public Color selectColor = Color.cyan;
+        [HideInInspector] public Color norColor = Color.white;
+        [HideInInspector] public Color disableColor = Color.gray;
+        [HideInInspector] public Color isUsedColor = Color.green;
+
+        [HideInInspector] public Sprite selectImage;
+        [HideInInspector] public Sprite norImage;
+        [HideInInspector] public Sprite disableImage;
+        [HideInInspector] public Sprite isUsedImage;
+
+        [HideInInspector] public Color textSelectColor = new Color(0.1960784f, 0.1960784f, 0.1960784f, 1);
+        [HideInInspector] public Color textDisableColor = new Color(0.1960784f, 0.1960784f, 0.1960784f, 1);
+        
         //Property
         private Text _text;
 
@@ -75,19 +102,33 @@ namespace _Scripts.qtLib
 
         //Event
         private qtPointerEvent _onPointerClick;
+        private Button.ButtonClickedEvent _onButtonClick;
 
         public qtPointerEvent onPointerClick => _onPointerClick ??= new qtPointerEvent();
-        public Button.ButtonClickedEvent onClick => button.onClick;
-
-        public Color selectColor = Color.cyan;
-        public Color norColor = Color.white;
-        public Color disableColor = Color.gray;
-        public Color isUsedColor = Color.green;
+        public Button.ButtonClickedEvent onClick => _onButtonClick ??= new Button.ButtonClickedEvent();
 
         public Color color
         {
             get => button.image.color;
             set => button.image.color = value;
+        }
+
+        public Image image
+        {
+            get => button.image;
+            set => button.image = value;
+        }
+
+        public Color textColor
+        {
+            get => text.color;
+            set => text.color = value;
+        }
+        
+        public Color tmpTextColor
+        {
+            get => tmpText.color;
+            set => tmpText.color = value;
         }
 
         private bool _isActive;
@@ -97,7 +138,18 @@ namespace _Scripts.qtLib
             set
             {
                 button.interactable = value;
-                color = value ? norColor : disableColor;
+                
+                if (TransitionType == BtnTransitionType.Color)
+                {
+                    color = value ? norColor : disableColor;
+                }
+                else if(TransitionType == BtnTransitionType.Image)
+                {
+                    image.sprite = value ? norImage : disableImage;
+                }
+                
+                if(text != null) textColor = value ? textSelectColor : textDisableColor;
+                if(tmpText != null) tmpTextColor = value ? textSelectColor : textDisableColor;
                 _isActive = value;
                 _unTouchable = !value;
             }
@@ -109,7 +161,18 @@ namespace _Scripts.qtLib
             get => _isSelect;
             set
             {
-                color = value ? selectColor : norColor;
+                if (TransitionType == BtnTransitionType.Color)
+                {
+                    color = value ? selectColor : norColor;
+                }
+                else if(TransitionType == BtnTransitionType.Image)
+                {
+                    image.sprite = value ? selectImage : norImage;
+                } 
+                
+                if(text != null) textColor = value ? textSelectColor : textDisableColor;
+                if(tmpText != null) tmpTextColor = value ? textSelectColor : textDisableColor;
+
                 _isSelect = value;
             }
         }
@@ -122,7 +185,14 @@ namespace _Scripts.qtLib
             set
             {
                 _isUsed = value;
-                color = value ? isUsedColor : norColor;
+                if (TransitionType == BtnTransitionType.Color)
+                {
+                    color = value ? isUsedColor : norColor;
+                }
+                else if(TransitionType == BtnTransitionType.Image)
+                {
+                    image.sprite = value ? isUsedImage : norImage;
+                }
             }
         }
 
@@ -146,6 +216,14 @@ namespace _Scripts.qtLib
             isActive = true;
             onClick.RemoveAllListeners();
             onPointerClick.RemoveAllListeners();
+        }
+
+        private void Awake()
+        {
+            button.onClick.AddListener(() =>
+            {
+                _onButtonClick?.Invoke(); 
+            });
         }
     }
 
