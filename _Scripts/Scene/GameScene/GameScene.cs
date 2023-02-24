@@ -1,5 +1,4 @@
-using _Scripts.System;
-using NotImplementedException = System.NotImplementedException;
+using System.Collections;
 
 namespace _Scripts.Scene.GameScene
 {
@@ -10,7 +9,7 @@ namespace _Scripts.Scene.GameScene
             base.Initialize();
         }
 
-        protected override void InitEvent()
+        public override void InitEvent()
         {
         }
 
@@ -18,9 +17,9 @@ namespace _Scripts.Scene.GameScene
         {
         }
 
-        protected override void OnExit()
+        public override IEnumerator OnExit()
         {
-            
+            yield break;
         }
 
         #region ----- ANIMATION -----

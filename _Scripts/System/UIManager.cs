@@ -6,6 +6,7 @@ using _Prefab.Popup;
 using _Prefab.Popup.YesNoPopup;
 using _Scripts.HUD;
 using _Scripts.qtLib;
+using _Scripts.qtLib.Corountine;
 using _Scripts.Scene;
 using DG.Tweening;
 using TMPro;
@@ -259,7 +260,7 @@ namespace _Scripts.System
         }
 
         //Scene
-        public IEnumerator<T> ShowSceneWithOutWait<T>(qtScene.EScene scene) where T : sceneBase
+        public IEnumerator<T> ShowSceneWithAnimation<T>(qtScene.EScene scene) where T : sceneBase
         {
             _scenes ??= new Dictionary<qtScene.EScene, sceneBase>();
             
@@ -289,12 +290,6 @@ namespace _Scripts.System
                 tempScene = _scenes[scene];
                 if (tempScene.gameObject.activeSelf)
                 {
-                    FadingScene(tempScene, showScene.fadingIn, showScene.fadingOut, showScene.showHUD, showScene.hudId,
-                        () =>
-                        {
-                            tempScene.Hide();
-                            tempScene.Initialize();
-                        });
                     yield return (T)tempScene;
                 }
             }
@@ -304,12 +299,14 @@ namespace _Scripts.System
             if (currentScene != null)
             {
                 var oldScene = currentScene;
-                FadingScene(tempScene, showScene.fadingIn, showScene.fadingOut, showScene.showHUD, showScene.hudId,
-                    () =>
-                    {
-                        oldScene.Hide();
-                        tempScene.Initialize();
-                    });
+                qtPrivateCoroutiner.Start(oldScene.OnExit());
+                var anim = oldScene.Hide();
+                while (anim.IsActive() && !anim.IsComplete())
+                {
+                    yield break;
+                }
+                tempScene.InitEvent();
+                tempScene.Initialize();
             }
             else
             {
@@ -322,7 +319,11 @@ namespace _Scripts.System
                     }
                 }
                 tempScene.Initialize();
-                tempScene.Show();
+                var anim = tempScene.Show();
+                while (anim.IsActive() && !anim.IsComplete())
+                {
+                    yield break;
+                }
             }
             
             yield return (T)tempScene;
@@ -358,12 +359,6 @@ namespace _Scripts.System
                 tempScene = _scenes[scene];
                 if (tempScene.gameObject.activeSelf)
                 {
-                    FadingScene(tempScene, showScene.fadingIn, showScene.fadingOut, showScene.showHUD, showScene.hudId,
-                        () =>
-                        {
-                            tempScene.Hide();
-                            tempScene.Initialize();
-                        });
                     return (T)tempScene;
                 }
             }
@@ -376,7 +371,11 @@ namespace _Scripts.System
                 FadingScene(tempScene, showScene.fadingIn, showScene.fadingOut, showScene.showHUD, showScene.hudId,
                     () =>
                     {
-                        oldScene.Hide();
+                        qtPrivateCoroutiner.Start(oldScene.OnExit());
+                        oldScene.gameObject.SetActive(false);
+                    }, () =>
+                    {
+                        tempScene.InitEvent();
                         tempScene.Initialize();
                     });
             }
@@ -391,7 +390,7 @@ namespace _Scripts.System
                     }
                 }
                 tempScene.Initialize();
-                tempScene.Show();
+                tempScene.gameObject.SetActive(true);
             }
             
             return (T)tempScene;
@@ -485,7 +484,7 @@ namespace _Scripts.System
             return tempHud.Show();
         }
 
-        private void FadingScene(sceneBase newScene, float fadeIn, float fadeOut, bool showHUD = false, qtScene.EHud hud = qtScene.EHud.None, Action fadeInAction = null)
+        private void FadingScene(sceneBase newScene, float fadeIn, float fadeOut, bool showHUD = false, qtScene.EHud hud = qtScene.EHud.None, Action fadeInAction = null, Action onComplete = null)
         {
             Fading(true, Color.black, fadeIn)
                 .OnStart(() =>
@@ -507,7 +506,7 @@ namespace _Scripts.System
                 currentPopup = null;
                 currentScene = newScene;
                 fadeInAction?.Invoke();
-                newScene.Show();
+                newScene.gameObject.SetActive(true);
                 if (showHUD && hud != qtScene.EHud.None)
                 {
                     if (currentHUD == null || currentHUD.id != hud)
@@ -515,6 +514,7 @@ namespace _Scripts.System
                         currentHUD = ShowHUD(hud);
                     }
                 }
+                onComplete?.Invoke();
                 Fading(false, Color.black, fadeOut);
             });
         }

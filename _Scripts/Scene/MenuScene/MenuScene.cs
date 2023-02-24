@@ -1,7 +1,4 @@
-using System.Collections.Generic;
-using _Scripts.System;
-using UnityEngine;
-using static qtHelper;
+using System.Collections;
 
 namespace _Scripts.Scene.MainMenuScene
 {
@@ -18,7 +15,7 @@ namespace _Scripts.Scene.MainMenuScene
             base.Initialize();
         }
 
-        protected override void InitEvent()
+        public override void InitEvent()
         {
         }
         
@@ -26,25 +23,15 @@ namespace _Scripts.Scene.MainMenuScene
         {
         }
 
-        protected override void OnExit()
+        public override IEnumerator OnExit()
         {
-            
+            yield break;
         }
 
         #endregion
 
         #region ----- ANIMATION -----
-
-        public override void Show()
-        {
-            base.Show();
-        }
-
-        public override void Hide()
-        {
-            base.Hide();
-        }
-
+        
         #endregion
 
         #region ----- BUTTON EVENT -----

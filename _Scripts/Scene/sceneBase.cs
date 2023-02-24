@@ -1,5 +1,8 @@
+using System.Collections;
+using System.Collections.Generic;
 using _Scripts.Scene.MainMenuScene;
 using _Scripts.System;
+using DG.Tweening;
 using UnityEngine;
 
 namespace _Scripts.Scene
@@ -11,25 +14,23 @@ namespace _Scripts.Scene
         public virtual void Initialize()
         {
         }
-        protected abstract void InitEvent();
+        public abstract void InitEvent();
         public abstract void InitObject();
-        protected abstract void OnExit();
+        public abstract IEnumerator OnExit();
 
         public virtual void OnBack()
         {
             //Temp
             UIManager.Instance.ShowScene<MenuScene>(qtScene.EScene.MenuScene);
         }
-        public virtual void Show()
+        public virtual Tween Show()
         {
-            gameObject.SetActive(true);
-            InitEvent();
+            return null;
         }
 
-        public virtual void Hide()
+        public virtual Tween Hide()
         {
-            gameObject.SetActive(false);
-            OnExit();
+            return null;
         }
     }
 }
