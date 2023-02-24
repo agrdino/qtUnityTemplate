@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Threading;
@@ -7,8 +8,10 @@ using _Prefab.Popup.YesNoPopup;
 using _Scripts.HUD;
 using _Scripts.qtLib;
 using _Scripts.qtLib.Corountine;
+using _Scripts.qtLib.Extension;
 using _Scripts.Scene;
 using DG.Tweening;
+using qtUnityTemplate._Scripts.Scene;
 using TMPro;
 using Unity.VisualScripting;
 using UnityEngine;
@@ -22,6 +25,7 @@ namespace _Scripts.System
         [Header("Scene config")] [SerializeField]
         private qtScene.EScene startScene;
 
+        [SerializeField] private bool showAnim;
         public popBase currentPopup
         {
             get;
@@ -59,16 +63,28 @@ namespace _Scripts.System
         
         #region ----- INITIALIZE -----
         
-        private void Start()
+        private IEnumerator Start()
         {
             InitObject();
             Initialize();
-            ShowScene<sceneBase>(startScene);
+            if (showAnim)
+            {
+                var x = ShowSceneWithAnimation<sceneBase>(startScene);
+                yield return StartCoroutine(x);
+            }
+            else
+            {
+                ShowScene<sceneBase>(startScene);
+            }
         }
 
         private void InitObject()
         {
             _canvasOnTop = FindObjectInRootIncludingInactive("CanvasOnTop");
+            if (_canvasOnTop == null)
+            {
+                _canvasOnTop = Instantiate(Resources.Load<GameObject>("CanvasOnTop"));
+            }
             _canvas = FindObjectInRootIncludingInactive("MainCanvas");
             _loadingIndicator = Instantiate(Resources.Load<RectTransform>("imgLoading"), _canvasOnTop.transform);
             _loadingIndicator.gameObject.SetActive(false);
@@ -260,7 +276,7 @@ namespace _Scripts.System
         }
 
         //Scene
-        public IEnumerator<T> ShowSceneWithAnimation<T>(qtScene.EScene scene) where T : sceneBase
+        public IEnumerator<T> ShowSceneWithAnimation<T>(qtScene.EScene scene, Action beforeShow = null, Action afterShow = null) where T : sceneBase
         {
             _scenes ??= new Dictionary<qtScene.EScene, sceneBase>();
             
@@ -293,39 +309,33 @@ namespace _Scripts.System
                     yield return (T)tempScene;
                 }
             }
-            tempScene.gameObject.SetActive(false);
 
 
+            Tween anim;
             if (currentScene != null)
             {
                 var oldScene = currentScene;
                 qtPrivateCoroutiner.Start(oldScene.OnExit());
-                var anim = oldScene.Hide();
-                while (anim.IsActive() && !anim.IsComplete())
-                {
-                    yield break;
-                }
-                tempScene.InitEvent();
-                tempScene.Initialize();
-            }
-            else
-            {
-                currentScene = tempScene;
-                if (showScene.showHUD && showScene.hudId != qtScene.EHud.None)
-                {
-                    if (currentHUD == null || currentHUD.id != showScene.hudId)
-                    {
-                        currentHUD = ShowHUD(showScene.hudId);
-                    }
-                }
-                tempScene.Initialize();
-                var anim = tempScene.Show();
-                while (anim.IsActive() && !anim.IsComplete())
-                {
-                    yield break;
-                }
+                anim = oldScene.Hide();
+                yield return anim.WaitForCompletion<T>().Current;
             }
             
+            currentScene = tempScene;
+            if (showScene.showHUD && showScene.hudId != qtScene.EHud.None)
+            {
+                if (currentHUD == null || currentHUD.id != showScene.hudId)
+                {
+                    currentHUD = ShowHUD(showScene.hudId);
+                }
+            }
+            tempScene.gameObject.SetActive(true);
+            tempScene.InitEvent();
+            tempScene.Initialize();
+            beforeShow?.Invoke();
+            tempScene.SetUpAnim();
+            anim = tempScene.Show();
+            yield return anim.WaitForCompletion<T>().Current;
+            afterShow?.Invoke();
             yield return (T)tempScene;
         }
         
@@ -567,5 +577,6 @@ namespace _Scripts.System
         }
 
         #endregion
+        
     }
 }
